@@ -1,0 +1,1160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pretty Prismatic Princess</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bagel+Fat+One&family=Nunito:wght@600;800;900&display=swap">
+<style>
+/* Layout: full-bleed night-sky canvas, a thin glass HUD strip on top, rainbow-rimmed card for menus */
+:root{
+  --night:#0b0320;
+  --ink:#fdf7ff;
+  --muted:#cbb9f0;
+  --glass:rgba(24,8,56,.62);
+  --card:rgba(22,7,52,.94);
+  --gold:#ffd86b;
+  --hot:#ff4f8b;
+  --rainbow:linear-gradient(90deg,#ff3b6b,#ff9a3b,#ffe53b,#4dff88,#3bd5ff,#6b6bff,#d65bff);
+  --display:"Bagel Fat One","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --body:"Nunito",ui-rounded,"Segoe UI",system-ui,sans-serif;
+  color-scheme:dark;
+}
+html,body{height:100%;margin:0;overflow:hidden;background:var(--night);color:var(--ink);font-family:var(--body);
+  overscroll-behavior:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#game:active{cursor:grabbing}
+
+#hud{position:fixed;top:0;left:0;right:0;z-index:2;display:flex;align-items:center;gap:8px;
+  padding-top:calc(env(safe-area-inset-top,0px) + 10px);padding-bottom:10px;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:linear-gradient(180deg,rgba(11,3,32,.85),rgba(11,3,32,0));pointer-events:none}
+.stat{display:flex;flex-direction:column;align-items:center;min-width:44px;line-height:1}
+.stat .lbl{font-size:10px;font-weight:800;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.stat b{font-family:var(--display);font-weight:400;font-size:22px;margin-top:3px;font-variant-numeric:tabular-nums}
+.stat.low b{color:var(--hot);animation:throb .5s ease-in-out infinite alternate}
+@keyframes throb{to{transform:scale(1.18)}}
+.meter{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.bar{height:12px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.bar i{display:block;height:100%;width:0;background:var(--rainbow);background-size:200% 100%;border-radius:99px;
+  box-shadow:0 0 12px rgba(255,255,255,.7);transition:width .15s ease-out;animation:slide 2s linear infinite}
+@keyframes slide{to{background-position:-200% 0}}
+.count{font-size:12px;font-weight:800;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.count b{color:var(--ink);font-weight:900}
+.ib{pointer-events:auto;width:36px;height:36px;border-radius:50%;border:1px solid rgba(255,255,255,.25);background:var(--glass);
+  color:var(--ink);display:grid;place-items:center;cursor:pointer;padding:0}
+.ib:focus-visible,.btn:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.ib svg{width:18px;height:18px}
+.ib .x{display:none}
+.ib.off .x{display:block}
+.ib.off .w{display:none}
+
+#hint{position:fixed;left:0;right:0;bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;text-align:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  pointer-events:none;transition:opacity .4s}
+#hint span{display:inline-block;padding:9px 16px;border-radius:99px;background:var(--glass);font-weight:800;font-size:15px;
+  box-shadow:0 0 0 1px rgba(255,255,255,.18),0 0 24px rgba(160,90,255,.35);backdrop-filter:blur(6px)}
+
+#ov{position:fixed;inset:0;z-index:3;display:grid;place-items:center;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px;
+  background:radial-gradient(ellipse at center,rgba(11,3,32,.25),rgba(11,3,32,.7))}
+#ov[hidden]{display:none}
+.card{position:relative;width:min(380px,100%);box-sizing:border-box;padding:26px 22px 22px;border-radius:28px;text-align:center;
+  background:linear-gradient(var(--card),var(--card)) padding-box,var(--rainbow) border-box;border:3px solid transparent;
+  box-shadow:0 0 40px rgba(255,120,220,.35),0 0 90px rgba(90,160,255,.25);backdrop-filter:blur(10px)}
+.logo{margin:0 0 10px;font-family:var(--display);font-weight:400;font-size:clamp(40px,12vw,56px);line-height:.92;text-wrap:balance;
+  background:var(--rainbow);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+  filter:drop-shadow(0 0 14px rgba(255,255,255,.35));animation:slide 4s linear infinite}
+.card h2{margin:0 0 6px;font-family:var(--display);font-weight:400;font-size:34px;line-height:1;text-wrap:balance;
+  background:var(--rainbow);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card p{margin:0 0 14px;color:var(--muted);font-weight:600;font-size:15px;line-height:1.45}
+.how{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 18px;text-align:left}
+.how div{padding:11px 12px;border-radius:16px;font-size:13px;line-height:1.35;font-weight:600;color:var(--ink)}
+.how b{display:block;font-size:11px;letter-spacing:.14em;text-transform:uppercase;margin-bottom:3px}
+.how .l{background:linear-gradient(140deg,rgba(255,240,170,.22),rgba(255,140,220,.18));box-shadow:inset 0 0 0 1px rgba(255,240,190,.35)}
+.how .l b{color:var(--gold)}
+.how .d{background:linear-gradient(140deg,rgba(60,20,130,.6),rgba(20,5,50,.6));box-shadow:inset 0 0 0 1px rgba(170,120,255,.4)}
+.how .d b{color:#c49bff}
+.btns{display:flex;flex-direction:column;gap:10px}
+.btn{font:inherit;font-family:var(--display);font-size:22px;padding:13px 18px;border-radius:99px;border:0;cursor:pointer;color:#22093f;
+  background:var(--rainbow);background-size:200% 100%;animation:slide 3s linear infinite;box-shadow:0 0 26px rgba(255,255,255,.35)}
+.btn.alt{background:rgba(255,255,255,.1);color:var(--ink);box-shadow:inset 0 0 0 2px rgba(255,255,255,.3);animation:none;font-size:18px}
+.stats{display:flex;justify-content:center;gap:22px;margin:4px 0 16px}
+.stats div{display:flex;flex-direction:column;line-height:1.1}
+.stats b{font-family:var(--display);font-weight:400;font-size:28px;font-variant-numeric:tabular-nums}
+.stats span{font-size:11px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.how .v{grid-column:1/-1;background:linear-gradient(100deg,rgba(255,80,140,.25),rgba(255,200,60,.2),rgba(80,220,255,.22),rgba(170,90,255,.25));box-shadow:inset 0 0 0 1px rgba(255,255,255,.3)}
+.how .v b{color:#fff}
+.grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;max-height:min(48vh,400px);overflow-y:auto;padding:4px;margin:0 0 14px}
+.grid button{font:inherit;font-family:var(--display);font-size:18px;aspect-ratio:1;border-radius:14px;border:0;cursor:pointer;color:var(--ink);
+  background:rgba(255,255,255,.1);box-shadow:inset 0 0 0 1px rgba(255,255,255,.22)}
+.grid button.done{background:linear-gradient(140deg,hsl(var(--h),95%,62%),hsl(calc(var(--h) + 70),95%,62%));color:#1a0640}
+.grid button:disabled{opacity:.28;cursor:default}
+.grid button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+#toast{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top,0px) + 70px);z-index:2;pointer-events:none;
+  padding:6px 14px;border-radius:99px;background:var(--glass);font-size:13px;font-weight:800;color:var(--ink);opacity:0;transition:opacity .5s;
+  white-space:nowrap;max-width:calc(100% - 32px);overflow:hidden;text-overflow:ellipsis;box-shadow:0 0 0 1px rgba(255,255,255,.2)}
+@media (prefers-reduced-motion:reduce){.logo,.btn,.bar i{animation:none}.stat.low b{animation:none}}
+</style>
+
+<canvas id="game" aria-label="Game area: hold and drag to move the princess in light mode, let go to absorb colors in dark mode"></canvas>
+
+<div id="hud">
+  <div class="stat"><span class="lbl">Level</span><b id="lvl">1</b></div>
+  <div class="meter">
+    <div class="bar"><i id="fill"></i></div>
+    <div class="count"><b id="cnt">0</b> / <span id="tgt">40</span> pixels</div>
+  </div>
+  <div class="stat" id="timeBox"><span class="lbl">Time</span><b id="tm">60</b></div>
+  <button id="musBtn" class="ib" type="button" aria-label="Music">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l11-2v13"/><circle cx="6.5" cy="18" r="2.5" fill="currentColor"/><circle cx="17.5" cy="16" r="2.5" fill="currentColor"/><path class="x" d="M3 3l18 18"/></svg>
+  </button>
+  <button id="sfxBtn" class="ib" type="button" aria-label="Sound effects">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/><path class="x" d="M17 9l5 6M22 9l-5 6"/></svg>
+  </button>
+</div>
+
+<div id="toast"></div>
+<div id="hint" style="opacity:0"><span id="hintTxt"></span></div>
+
+<div id="ov">
+  <div class="card" id="card"></div>
+</div>
+
+<script>
+(() => {
+"use strict";
+const cv = document.getElementById("game"), ctx = cv.getContext("2d");
+const $ = id => document.getElementById(id);
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const TAU = Math.PI * 2;
+const rand = (a, b) => a + Math.random() * (b - a);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+
+let W = 0, H = 0, DPR = 1, U = 1, TOP = 60;
+// quality steps down if frames run slow on a phone: canvas resolution and particle caps
+const RS_MAX = [1.75, 1.35, 1];
+const PIX_CAP = [900, 700, 500], SPARK_CAP = [500, 350, 220];
+let quality = 0;
+let stars = [];
+
+/* ---------- state ---------- */
+const P = { x: 0, y: 0, tx: 0, ty: 0, tilt: 0, light: false, charge: 1, pulse: 0 };
+const G = { mode: "menu", lvl: 0, cfg: null, count: 0, time: 0, spawnT: 0.5, combo: 0, comboT: 0, bestCombo: 0,
+            shake: 0, hitstop: 0, t: 0, wonT: 0, fwT: 0, hint: 0, splits: 0, overlayShown: false,
+            lastSplit: -9, vortex: 0, vortexGain: 0, vortexCount: 0, crossTip: false };
+const VORTEX_TIME = 1.6;
+let beams = [], pix = [], sparks = [], rings = [], flashes = [];
+
+let best = 0;
+try { best = parseInt(localStorage.getItem("ppp-best") || "0", 10) || 0; } catch (e) {}
+
+/* ---------- levels ---------- */
+function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+// Each theme bends the base difficulty curve in one direction so neighbouring levels feel different.
+const THEMES = {
+  glow:   { name: "Gentle Glow",    m: { interval: 1.15, speed: .85 }, eff: .8 },
+  rain:   { name: "Laser Rain",     m: { interval: .55, speed: 1.2, power: .6, len: .7 } },
+  cross:  { name: "Crossfire",      set: { cross: .75 }, eff: 1.1 },
+  fade:   { name: "Fading Fast",    m: { life: .55 }, eff: .75 },
+  honey:  { name: "Slow Honey",     m: { speed: .6, fric: 1.6, life: 1.15 } },
+  prism:  { name: "Prism Party",    set: { prism: .5 } },
+  lance:  { name: "Long Lances",    m: { len: 2.2, speed: .85 } },
+  bounce: { name: "Bouncy Castle",  m: { fric: .55 }, set: { bounce: .97 } },
+  twins:  { name: "Twin Stars",     set: { dbl: .85 } },
+  sprink: { name: "Sprinkles",      m: { power: .5, interval: .55 } },
+  comet:  { name: "Comet Rush",     m: { speed: 1.55, warn: .8 }, eff: .9 },
+  lull:   { name: "Starlight Lull", m: { interval: 1.5, power: 1.5 }, eff: .95 },
+  storm:  { name: "Rainbow Storm",  m: { interval: .72, speed: 1.12 }, add: { dbl: .25, cross: .15, prism: .1 }, eff: 1.25 },
+};
+const ORDER = ["cross", "honey", "prism", "rain", "twins", "fade", "lance", "bounce", "sprink", "comet", "lull", "glow"];
+const LEVELS = (() => {
+  const rng = mulberry32(20261103), out = [];
+  let prev = "";
+  for (let i = 0; i < 100; i++) {
+    const d = i / 99;
+    const c = { interval: lerp(2.6, 1.2, d), speed: lerp(460, 900, d), power: lerp(28, 42, d), life: lerp(8, 5.2, d),
+      dbl: lerp(0, .4, d), cross: lerp(.12, .35, d), prism: lerp(.03, .2, d), len: 150, warn: lerp(1, .55, d),
+      fric: 1.9, bounce: .8, time: 60 + 5 * Math.floor(rng() * 5) };
+    const supply = c.time / c.interval * (1 + c.dbl + c.cross) * c.power * (1 + c.prism * 1.2);
+    let key;
+    if (i === 0) key = "glow";
+    else if (i === 1) key = "cross";
+    else if (i % 10 === 9) key = "storm";
+    else { do key = ORDER[Math.floor(rng() * ORDER.length)]; while (key === prev); }
+    prev = key;
+    const th = THEMES[key];
+    for (const k in th.m || {}) c[k] *= th.m[k];
+    for (const k in th.set || {}) c[k] = th.set[k];
+    for (const k in th.add || {}) c[k] += th.add[k];
+    c.warn = Math.max(.45, c.warn);
+    const eff = lerp(.065, .16, Math.pow(d, .9)) * (th.eff || 1) * (.93 + rng() * .15);
+    c.target = i === 0 ? 40 : Math.max(45, Math.round(supply * eff / 5) * 5);
+    c.name = th.name;
+    out.push(c);
+  }
+  return out;
+})();
+const cfgFor = i => LEVELS[Math.min(i, LEVELS.length - 1)];
+
+/* ---------- sizing ---------- */
+function resize() {
+  DPR = Math.min(RS_MAX[quality], window.devicePixelRatio || 1);
+  W = window.innerWidth; H = window.innerHeight;
+  cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  U = clamp(Math.min(W, H) / 420, .75, 1.8);
+  TOP = $("hud").getBoundingClientRect().bottom || 60;
+  stars = [];
+  const n = Math.round(W * H / 4200);
+  for (let i = 0; i < n; i++) stars.push({ x: Math.random() * W, y: Math.random() * H, r: rand(.3, 1.5), p: rand(0, TAU), s: rand(.6, 2.4), h: rand(0, 360) });
+  if (!P.x) { P.x = P.tx = W / 2; P.y = P.ty = H * .62; }
+  P.x = P.tx = clamp(P.x, 24 * U, W - 24 * U);
+  P.y = P.ty = clamp(P.y, TOP + 30 * U, H - 30 * U);
+}
+window.addEventListener("resize", resize);
+
+/* ---------- glow sprites ---------- */
+const glowCache = new Map();
+function glowSprite(h, s = 100, l = 60) {
+  const key = h + "|" + s + "|" + l;
+  let c = glowCache.get(key);
+  if (c) return c;
+  const S = 64;
+  if (glowCache.size > 400) glowCache.clear();
+  c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d");
+  const gr = g.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+  gr.addColorStop(0, `hsla(${h},${s}%,${Math.min(97, l + 32)}%,1)`);
+  gr.addColorStop(.16, `hsla(${h},${s}%,${l}%,.8)`);
+  gr.addColorStop(.42, `hsla(${h},${s}%,${l - 6}%,.22)`);
+  gr.addColorStop(1, `hsla(${h},${s}%,${l - 12}%,0)`);
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  glowCache.set(key, c);
+  return c;
+}
+const hk = h => ((Math.round(h / 6) * 6) % 360 + 360) % 360;
+const WHITE = () => glowSprite(50, 100, 66);
+const nebula = [[290, 0.18], [200, 0.14], [330, 0.13], [160, 0.1]].map(([h, a], i) => ({ h, a, i }));
+
+/* ---------- audio ---------- */
+let liveVoices = 0;
+let AC = null, sfxBus = null, musBus = null, revIn = null, noiseBuf = null, lastBlip = 0;
+let sfxOn = true, musOn = true;
+try { sfxOn = localStorage.getItem("ppp-sfx") !== "0"; musOn = localStorage.getItem("ppp-mus") !== "0"; } catch (e) {}
+function initAudio() {
+  if (AC) { if (AC.state === "suspended") AC.resume(); return; }
+  try {
+    AC = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = AC.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4; comp.connect(AC.destination);
+    const out = AC.createGain(); out.gain.value = .9; out.connect(comp);
+    sfxBus = AC.createGain(); sfxBus.gain.value = sfxOn ? .6 : 0; sfxBus.connect(out);
+    musBus = AC.createGain(); musBus.gain.value = musOn ? .3 : 0; musBus.connect(out);
+    const len = Math.floor(AC.sampleRate * 1.3), ir = AC.createBuffer(2, len, AC.sampleRate);
+    for (let ch = 0; ch < 2; ch++) { const d = ir.getChannelData(ch); for (let i = 0; i < len; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3.2); }
+    const conv = AC.createConvolver(); conv.buffer = ir;
+    revIn = AC.createGain(); revIn.gain.value = .35; revIn.connect(conv);
+    const rg = AC.createGain(); rg.gain.value = .55; conv.connect(rg); rg.connect(out);
+    noiseBuf = AC.createBuffer(1, AC.sampleRate, AC.sampleRate);
+    const nd = noiseBuf.getChannelData(0); for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+    startMusic();
+  } catch (e) { AC = null; }
+}
+function send(node, amt) { if (amt) { const s = AC.createGain(); s.gain.value = amt; node.connect(s); s.connect(revIn); } }
+function voice(bus, freq, t0, dur, o = {}) {
+  if (liveVoices > 70) return;
+  const { type = "sine", vol = .2, attack = .005, rev = 0, slide = 0, detune = 0 } = o;
+  const osc = AC.createOscillator(), g = AC.createGain();
+  osc.type = type; osc.frequency.setValueAtTime(freq, t0); if (detune) osc.detune.value = detune;
+  if (slide) osc.frequency.exponentialRampToValueAtTime(slide, t0 + dur);
+  g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + attack); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  osc.connect(g); g.connect(bus); send(g, rev); osc.start(t0); osc.stop(t0 + dur + .05);
+  liveVoices++; osc.onended = () => { liveVoices--; osc.disconnect(); g.disconnect(); };
+}
+function noise(bus, t0, dur, o = {}) {
+  if (liveVoices > 70) return;
+  const { vol = .2, type = "highpass", f = 6000, f2 = 0, q = 1, rev = 0 } = o;
+  const s = AC.createBufferSource(); s.buffer = noiseBuf; s.loop = true;
+  const fl = AC.createBiquadFilter(); fl.type = type; fl.frequency.setValueAtTime(f, t0); if (f2) fl.frequency.exponentialRampToValueAtTime(f2, t0 + dur); fl.Q.value = q;
+  const g = AC.createGain(); g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(vol, t0 + .008); g.gain.exponentialRampToValueAtTime(.0001, t0 + dur);
+  s.connect(fl); fl.connect(g); g.connect(bus); send(g, rev); s.start(t0, Math.random() * .5); s.stop(t0 + dur + .05);
+  liveVoices++; s.onended = () => { liveVoices--; s.disconnect(); fl.disconnect(); g.disconnect(); };
+}
+const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+const PENT = [0, 2, 4, 7, 9];
+const pent = (i, base = 84) => base + PENT[((i % 5) + 5) % 5] + 12 * Math.floor(i / 5);
+function bell(bus, m, t0, dur, vol, rev) {
+  const f = mtof(m);
+  voice(bus, f, t0, dur, { vol, rev });
+  voice(bus, f * 2.756, t0, dur * .45, { vol: vol * .3, rev });
+}
+const sfx = {
+  split(prism) {
+    if (!AC || !sfxOn) return; const t = AC.currentTime;
+    noise(sfxBus, t, .55, { vol: .1, f: 7500, rev: .7 });
+    noise(sfxBus, t, .25, { vol: .08, type: "bandpass", f: 9000, f2: 3000, q: 3 });
+    const n = prism ? 10 : 7;
+    for (let i = 0; i < n; i++) bell(sfxBus, pent(Math.floor(rand(0, 9)) + (prism ? 2 : 0)), t + i * rand(.012, .03), rand(.35, .75), .055, .8);
+    voice(sfxBus, mtof(96), t, .3, { vol: .04, slide: mtof(110), rev: .5 });
+    if (prism) for (let i = 0; i < 6; i++) bell(sfxBus, pent(i * 2, 72), t + .06 + i * .045, 1, .06, 1);
+  },
+  absorb(c) {
+    if (!AC || !sfxOn) return; const now = performance.now(); if (now - lastBlip < 45) return; lastBlip = now;
+    const t = AC.currentTime, m = pent((c % 13) - 2, 79);
+    voice(sfxBus, mtof(m), t, .45, { vol: .07, attack: .004, rev: .6 });
+    voice(sfxBus, mtof(m) * 2, t, .18, { vol: .02, rev: .4 });
+  },
+  light() { if (!AC || !sfxOn) return; const t = AC.currentTime; voice(sfxBus, 880, t, .16, { type: "triangle", vol: .035, slide: 1760, rev: .4 }); noise(sfxBus, t, .12, { vol: .03, f: 9000 }); },
+  dark() { if (!AC || !sfxOn) return; voice(sfxBus, 300, AC.currentTime, .25, { vol: .08, slide: 90 }); },
+  warn() { if (!AC || !sfxOn) return; bell(sfxBus, pent(10), AC.currentTime, .25, .015, .5); },
+  vortex() {
+    if (!AC || !sfxOn) return; const t = AC.currentTime;
+    noise(sfxBus, t, 1.4, { vol: .22, type: "bandpass", f: 180, f2: 5200, q: 1.5, rev: .5 });
+    for (let i = 0; i < 18; i++) bell(sfxBus, pent(i - 3), t + i * .04, .7, .06, .9);
+    [60, 64, 67, 72, 76].forEach(m => voice(sfxBus, mtof(m), t + .05, 1.8, { type: "triangle", vol: .045, attack: .08, rev: 1 }));
+  },
+  win() { if (!AC || !sfxOn) return; const t = AC.currentTime; for (let i = 0; i < 12; i++) bell(sfxBus, pent(i - 2), t + i * .07, .8, .08, .9); [60, 64, 67, 72].forEach(m => voice(sfxBus, mtof(m), t + .8, 1.6, { type: "triangle", vol: .05, attack: .05, rev: 1 })); },
+  lose() { if (!AC || !sfxOn) return; const t = AC.currentTime; for (let i = 0; i < 5; i++) voice(sfxBus, mtof(pent(8 - i * 2, 60)), t + i * .14, .5, { type: "triangle", vol: .08, rev: .6 }); },
+};
+function buzz(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} }
+
+/* ---------- music: ten procedural chiptune songs ---------- */
+const NUM = { I: [0, 0], ii: [2, 1], iii: [4, 1], IV: [5, 0], V: [7, 0], vi: [9, 1] };
+const SONGS = [
+  { name: "Sugar Prism Parade",      bpm: 132, key: 0, A: "I V vi IV",  B: "IV V iii vi", lead: "square",   drums: "pop",    arp: 16, bass: "bounce", seed: 11 },
+  { name: "Lollipop Lightbeam",      bpm: 140, key: 5, A: "I IV V IV",  B: "vi IV I V",   lead: "triangle", drums: "four",   arp: 8,  bass: "root",   seed: 23 },
+  { name: "Glitter Gallop",          bpm: 150, key: 7, A: "I vi IV V",  B: "ii V I I",    lead: "square",   drums: "gallop", arp: 16, bass: "bounce", seed: 37 },
+  { name: "Bubblegum Rainbow",       bpm: 120, key: 2, A: "I iii IV V", B: "IV I V vi",   lead: "triangle", drums: "pop",    arp: 8,  bass: "walk",   seed: 41 },
+  { name: "Moonbeam Bounce",         bpm: 126, key: 9, A: "I IV I V",   B: "vi ii V I",   lead: "square",   drums: "four",   arp: 16, bass: "root",   seed: 53 },
+  { name: "Candy Comet",             bpm: 146, key: 3, A: "vi IV I V",  B: "IV V I I",    lead: "sawtooth", drums: "pop",    arp: 16, bass: "bounce", seed: 67 },
+  { name: "Twinkle Tiara Twist",     bpm: 136, key: 10, A: "I V IV V",  B: "ii IV V I",   lead: "triangle", drums: "gallop", arp: 8,  bass: "walk",   seed: 71 },
+  { name: "Sherbet Sunrise",         bpm: 116, key: 4, A: "I ii IV I",  B: "vi V IV V",   lead: "square",   drums: "pop",    arp: 8,  bass: "root",   seed: 89 },
+  { name: "Pixel Picnic",            bpm: 138, key: 1, A: "I IV vi V",  B: "IV I ii V",   lead: "square",   drums: "four",   arp: 16, bass: "bounce", seed: 97 },
+  { name: "Crystal Castle Carousel", bpm: 128, key: 6, A: "I vi ii V",  B: "I IV V I",    lead: "triangle", drums: "pop",    arp: 16, bass: "walk",   seed: 103 },
+];
+const RHY = [
+  "x.x.x.x.x...x...", "x..x..x.x.x.x...", "x.xxx.x.x...x.x.", "x...x.x.x.x.x...",
+  "x.x...x.x.x.x...", "x..x..x...x.x.x.", "xx.x.x..x.x.x...", "x.x.x...x..x.x..",
+];
+function buildSong(idx) {
+  const s = SONGS[idx], rng = mulberry32(s.seed);
+  const scale = [0, 2, 4, 7, 9];
+  const melRange = [];
+  for (let m = 67; m <= 88; m++) if (scale.includes(((m - 60 - s.key) % 12 + 12) % 12)) melRange.push(m);
+  const prog = { A: s.A.split(" ").map(n => NUM[n]), B: s.B.split(" ").map(n => NUM[n]) };
+  const mel = {};
+  for (const sec of ["A", "B"]) {
+    const r = [RHY[Math.floor(rng() * RHY.length)], RHY[Math.floor(rng() * RHY.length)], RHY[Math.floor(rng() * RHY.length)]];
+    const bars = [];
+    let pos = Math.floor(melRange.length / 2);
+    for (let b = 0; b < 4; b++) {
+      const pat = b === 3 ? "x...x...x......." : r[b === 2 ? 0 : b];
+      const [root, minor] = prog[sec][b];
+      const chord = [root, root + (minor ? 3 : 4), root + 7].map(x => (x + s.key) % 12);
+      const slots = new Array(16).fill(null);
+      const ons = [...pat].map((c, i) => c === "x" ? i : -1).filter(i => i >= 0);
+      ons.forEach((st, k) => {
+        if (st % 4 === 0 || k === ons.length - 1) {
+          let bestI = pos, bd = 99;
+          melRange.forEach((m, i) => { if (chord.includes(((m - 60) % 12 + 12) % 12) && Math.abs(i - pos) < bd) { bd = Math.abs(i - pos); bestI = i; } });
+          pos = bestI;
+        } else pos = clamp(pos + [-2, -1, -1, 1, 1, 2, 0][Math.floor(rng() * 7)], 0, melRange.length - 1);
+        const next = ons[k + 1] ?? 16;
+        slots[st] = { m: melRange[pos], len: Math.min(4, next - st) };
+      });
+      bars.push(slots);
+    }
+    mel[sec] = bars;
+  }
+  return { ...s, prog, mel, order: ["A", "A", "B", "A"], total: 16 * 16 };
+}
+const mus = { song: Math.floor(Math.random() * SONGS.length), step: 0, next: 0, loop: 0, timer: null, data: null };
+function startMusic() {
+  if (!AC) return;
+  mus.data = buildSong(mus.song); mus.step = 0; mus.loop = 0; mus.next = AC.currentTime + .15;
+  if (!mus.timer) mus.timer = setInterval(scheduleMusic, 25);
+  if (musOn) toast(`♪ ${mus.data.name}`);
+}
+function scheduleMusic() {
+  if (!AC || !mus.data) return;
+  if (mus.next < AC.currentTime - .2) mus.next = AC.currentTime + .05;
+  while (mus.next < AC.currentTime + .15) {
+    const spb = 60 / mus.data.bpm / 4;
+    if (musOn) playStep(mus.data, mus.step, mus.next, spb);
+    mus.next += spb; mus.step++;
+    if (mus.step >= mus.data.total) {
+      mus.step = 0;
+      if (++mus.loop >= 3) { mus.loop = 0; mus.song = (mus.song + 1) % SONGS.length; mus.data = buildSong(mus.song); if (musOn) toast(`♪ ${mus.data.name}`); }
+    }
+  }
+}
+function playStep(sd, step, t, spb) {
+  const bar = Math.floor(step / 16), s = step % 16, sec = sd.order[Math.floor(bar / 4)], b = bar % 4;
+  const [root, minor] = sd.prog[sec][b];
+  const r = root + sd.key;
+  const tri = [0, minor ? 3 : 4, 7, 12];
+  // lead
+  const n = sd.mel[sec][b][s];
+  if (n) {
+    const dur = n.len * spb * .95;
+    if (sd.lead === "triangle") voice(musBus, mtof(n.m), t, dur + .05, { type: "triangle", vol: .16, attack: .01, rev: .25 });
+    else { voice(musBus, mtof(n.m), t, dur, { type: sd.lead, vol: .045, attack: .008, detune: -7, rev: .2 }); voice(musBus, mtof(n.m), t, dur, { type: sd.lead, vol: .045, attack: .008, detune: 7 }); }
+  }
+  // sparkle arpeggio
+  if (sd.arp === 16 || s % 2 === 0) {
+    const k = sd.arp === 16 ? s : s / 2;
+    voice(musBus, mtof(72 + r + tri[k % 4]), t, spb * 1.6, { type: "square", vol: .018, attack: .003, rev: .3 });
+  }
+  // bass
+  let bn = null;
+  if (sd.bass === "root") { if (s === 0 || s === 8 || s === 11) bn = 0; }
+  else if (sd.bass === "bounce") { if (s % 4 === 0) bn = 0; else if (s % 4 === 2) bn = 12; }
+  else if (s % 4 === 0) bn = [0, 4 - (minor ? 1 : 0), 7, 9][s / 4];
+  if (bn !== null) voice(musBus, mtof(36 + r + bn), t, spb * 1.8, { type: "triangle", vol: .22, attack: .005 });
+  // drums
+  const kick = sd.drums === "four" ? s % 4 === 0 : sd.drums === "gallop" ? [0, 3, 8, 11].includes(s) : [0, 7, 8].includes(s);
+  if (kick) voice(musBus, 150, t, .16, { vol: .4, slide: 42 });
+  if (s === 4 || s === 12) noise(musBus, t, .13, { vol: .12, type: "bandpass", f: 1900, q: .8, rev: .2 });
+  if (s % 2 === 0) noise(musBus, t, .035, { vol: s % 4 === 2 ? .05 : .025, f: 8500 });
+}
+let toastTimer = 0;
+function toast(text) {
+  const el = $("toast"); el.textContent = text; el.style.opacity = 1;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { el.style.opacity = 0; }, 3000);
+}
+function syncButtons() {
+  $("sfxBtn").classList.toggle("off", !sfxOn); $("musBtn").classList.toggle("off", !musOn);
+  $("sfxBtn").setAttribute("aria-pressed", String(sfxOn)); $("musBtn").setAttribute("aria-pressed", String(musOn));
+}
+syncButtons();
+$("sfxBtn").addEventListener("click", () => {
+  sfxOn = !sfxOn; syncButtons(); initAudio();
+  if (sfxBus) sfxBus.gain.value = sfxOn ? .6 : 0;
+  try { localStorage.setItem("ppp-sfx", sfxOn ? "1" : "0"); } catch (e) {}
+});
+$("musBtn").addEventListener("click", () => {
+  musOn = !musOn; syncButtons(); initAudio();
+  if (musBus) musBus.gain.value = musOn ? .3 : 0;
+  if (musOn && mus.data) toast(`♪ ${mus.data.name}`);
+  try { localStorage.setItem("ppp-mus", musOn ? "1" : "0"); } catch (e) {}
+});
+
+/* ---------- beams ---------- */
+function edgePoint(side) {
+  if (side === 0) return { x: rand(W * .08, W * .92), y: TOP };
+  if (side === 1) return { x: W, y: rand(TOP + 20, H * .95) };
+  if (side === 2) return { x: rand(W * .08, W * .92), y: H };
+  return { x: 0, y: rand(TOP + 20, H * .95) };
+}
+function makeBeam(o, tx, ty, warn, prism, demo) {
+  const cfg = G.cfg || cfgFor(0);
+  let dx = tx - o.x, dy = ty - o.y; const d = Math.hypot(dx, dy) || 1; dx /= d; dy /= d;
+  let pathLen = Infinity;
+  for (const t of [dx > 0 ? (W - o.x) / dx : dx < 0 ? -o.x / dx : Infinity, dy > 0 ? (H - o.y) / dy : dy < 0 ? -o.y / dy : Infinity])
+    if (t > 1 && t < pathLen) pathLen = t;
+  return { ox: o.x, oy: o.y, dx, dy, pathLen, speed: (demo ? 600 : cfg.speed) * U, len: (demo ? 150 : cfg.len) * (prism ? 1.25 : 1) * U,
+           trav: 0, warn, power: cfg.power, prism, demoAt: rand(.3, .7) * pathLen, dead: false, cx: null, cy: null, d };
+}
+function spawnBeam(demo) {
+  const cfg = G.cfg || cfgFor(0);
+  const o = edgePoint(Math.floor(Math.random() * 4));
+  const prism = demo ? Math.random() < .2 : Math.random() < cfg.prism;
+  beams.push(makeBeam(o, rand(W * .22, W * .78), rand(TOP + (H - TOP) * .2, H * .82), demo ? .5 : cfg.warn, prism, demo));
+  if (!demo) sfx.warn();
+}
+// Two beams aimed to arrive at the same point at the same moment: stand there to trigger a vortex.
+function spawnCross() {
+  const cfg = G.cfg;
+  const ix = rand(W * .25, W * .75), iy = rand(TOP + (H - TOP) * .25, H * .78);
+  const s1 = Math.floor(Math.random() * 4), s2 = (s1 + 1 + Math.floor(Math.random() * 3)) % 4;
+  const b1 = makeBeam(edgePoint(s1), ix, iy, cfg.warn + .35, Math.random() < cfg.prism * .5, false);
+  const b2 = makeBeam(edgePoint(s2), ix, iy, 0, false, false);
+  b2.warn = b1.warn + (b1.d - b2.d) / b1.speed;
+  if (b2.warn < .4) { const sh = .4 - b2.warn; b1.warn += sh; b2.warn += sh; }
+  b1.cx = b2.cx = ix; b1.cy = b2.cy = iy;
+  beams.push(b1, b2); sfx.warn();
+  if (!G.crossTip && G.lvl < 6) { G.crossTip = true; flashHint("Two beams cross at the star. Catch both for a Prism Vortex!", 3200); }
+}
+function segClosest(px, py, ax, ay, bx, by) {
+  const vx = bx - ax, vy = by - ay, l2 = vx * vx + vy * vy || 1;
+  const t = clamp(((px - ax) * vx + (py - ay) * vy) / l2, 0, 1);
+  const x = ax + vx * t, y = ay + vy * t;
+  return { x, y, d: Math.hypot(px - x, py - y) };
+}
+function split(b, x, y) {
+  b.dead = true;
+  const cfg = G.cfg || cfgFor(0);
+  const n = Math.round(b.power * (b.prism ? 2.2 : 1));
+  const base = Math.atan2(b.dy, b.dx);
+  for (let i = 0; i < n; i++) {
+    const t = n > 1 ? i / (n - 1) : .5;
+    let a = b.prism ? base + t * TAU + rand(-.06, .06) : base + (t - .5) * 1.9 + rand(-.12, .12);
+    if (!b.prism && Math.random() < .12) a = rand(0, TAU);
+    const sp = rand(520, 1080) * U;
+    pix.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, h: b.prism ? t * 360 : t * 285, life: cfg.life * rand(.9, 1.1), s: rand(2.8, 4.6) * U, tw: rand(0, TAU) });
+  }
+  if (pix.length > PIX_CAP[quality]) pix.splice(0, pix.length - PIX_CAP[quality]);
+  rings.push({ x, y, r: 6 * U, vr: 1100 * U, life: .5, max: .5, h: -1, w: 7 * U });
+  rings.push({ x, y, r: 4 * U, vr: 600 * U, life: .35, max: .35, h: 50, w: 3 * U });
+  flashes.push({ x, y, life: .35, max: .35, size: (b.prism ? 320 : 220) * U });
+  for (let i = 0; i < 26; i++) {
+    const a = rand(0, TAU), sp = rand(150, 600) * U;
+    sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: rand(.3, .7), max: .7, h: 50, s: rand(4, 9) * U, white: true });
+  }
+  if (G.mode === "play") {
+    if (!reduceMotion) G.shake = Math.min(16, G.shake + (b.prism ? 12 : 7));
+    G.hitstop = .07;
+    sfx.split(b.prism); buzz(b.prism ? 30 : 14);
+    G.splits++;
+    if (G.hint === 1) setHint(2);
+    if (G.t - G.lastSplit < .8 && G.vortex <= 0) startVortex();
+    G.lastSplit = G.t;
+  }
+}
+function startVortex() {
+  G.vortex = VORTEX_TIME; G.vortexGain = 0; G.vortexCount++;
+  for (const p of pix) p.life = Math.max(p.life, VORTEX_TIME + .5);
+  if (!reduceMotion) G.shake = 18;
+  flashes.push({ x: P.x, y: P.y, life: .6, max: .6, size: Math.max(W, H) * 1.4 });
+  for (let i = 0; i < 4; i++) rings.push({ x: P.x, y: P.y, r: Math.max(W, H) * (.9 - i * .15), vr: -900 * U, life: .7 + i * .1, max: .8, h: -1, w: 10 * U });
+  sfx.vortex(); buzz([30, 40, 80]);
+}
+
+/* ---------- absorb ---------- */
+// Dark mode reaches full size fast but stays capped, so pixels across the screen still need to be chased down.
+const absorbR = () => lerp(50, 150, 1 - Math.pow(1 - P.charge, 2)) * U;
+function absorb(p) {
+  P.pulse = 1;
+  for (let i = 0; i < 2; i++) {
+    const a = rand(0, TAU), sp = rand(60, 220) * U;
+    sparks.push({ x: P.x, y: P.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp - 120 * U, life: rand(.3, .6), max: .6, h: p.h, s: rand(5, 9) * U });
+  }
+  if (G.mode !== "play") return;
+  G.count++; G.combo++; G.comboT = .7; G.bestCombo = Math.max(G.bestCombo, G.combo);
+  if (G.vortex > 0) G.vortexGain++;
+  if (G.combo % 10 === 0) rings.push({ x: P.x, y: P.y, r: 10 * U, vr: 500 * U, life: .4, max: .4, h: p.h, w: 4 * U });
+  sfx.absorb(G.combo);
+  if (G.hint === 2 && G.count >= 8) setHint(0);
+  if (G.count >= G.cfg.target) win();
+}
+
+/* ---------- flow ---------- */
+let hintTimer = 0;
+function setHint(n) {
+  G.hint = n;
+  const txt = ["", "Hold anywhere and drag to catch a white beam", "Now let go near the colors to pull them in"][n];
+  if (txt) $("hintTxt").textContent = txt;
+  $("hint").style.opacity = n ? 1 : 0;
+}
+function flashHint(text, ms) {
+  if (G.hint) return;
+  $("hintTxt").textContent = text; $("hint").style.opacity = 1;
+  clearTimeout(hintTimer); hintTimer = setTimeout(() => { if (!G.hint) $("hint").style.opacity = 0; }, ms);
+}
+function startLevel(i) {
+  initAudio();
+  i = clamp(i, 0, LEVELS.length - 1);
+  G.lvl = i; G.cfg = cfgFor(i); G.count = 0; G.time = G.cfg.time; G.spawnT = .8;
+  G.combo = 0; G.comboT = 0; G.bestCombo = 0; G.splits = 0; G.mode = "play"; G.overlayShown = false;
+  G.vortex = 0; G.vortexCount = 0; G.lastSplit = -9;
+  beams = []; pix = []; rings = []; flashes = [];
+  P.x = P.tx = W / 2; P.y = P.ty = H * .62; P.light = false; P.charge = 1;
+  $("ov").hidden = true;
+  setHint(i === 0 ? 1 : 0);
+  if (i > 0) flashHint(`Level ${i + 1} · ${G.cfg.name}: gather ${G.cfg.target}`, 2600);
+  updateHud(true);
+}
+function win() {
+  G.mode = "won"; G.wonT = 0; G.fwT = 0; P.light = false; ptr = null; G.vortex = 0;
+  beams.forEach(b => { if (b.warn <= 0) split(b, b.ox + b.dx * Math.min(b.trav, b.pathLen), b.oy + b.dy * Math.min(b.trav, b.pathLen)); });
+  beams = [];
+  if (G.lvl + 1 > best) { best = G.lvl + 1; try { localStorage.setItem("ppp-best", String(best)); } catch (e) {} }
+  sfx.win(); buzz([20, 40, 20]); setHint(0);
+}
+function lose() {
+  G.mode = "lost"; P.light = false; ptr = null; beams = []; G.vortex = 0;
+  sfx.lose(); setHint(0);
+  setTimeout(() => showCard("lost"), 700);
+}
+function toMenu() { G.mode = "menu"; G.cfg = null; G.lvl = 0; beams = []; showCard("menu"); updateHud(true); }
+function showCard(kind) {
+  const c = $("card");
+  const next = Math.min(best, LEVELS.length - 1);
+  if (kind === "menu") {
+    c.innerHTML = `<h1 class="logo">Pretty Prismatic Princess</h1>
+      <p>Split beams of light into rainbows, then soak up every glowing pixel.</p>
+      <div class="how"><div class="l"><b>Hold · Light</b>Drag her into white beams to shatter them into color.</div>
+      <div class="d"><b>Let go · Dark</b>She stands still and pulls in nearby pixels.</div>
+      <div class="v"><b>Prism Vortex</b>Split two beams back to back and every pixel on screen spirals into her.</div></div>
+      <div class="btns"><button class="btn" id="b1" type="button">${best > 0 ? `Play level ${next + 1}` : "Play"}</button>
+      <button class="btn alt" id="b2" type="button">Choose a level</button></div>`;
+    $("b1").onclick = () => startLevel(next);
+    $("b2").onclick = () => showCard("levels");
+  } else if (kind === "levels") {
+    let cells = "";
+    for (let i = 0; i < LEVELS.length; i++) {
+      const open = i <= best, done = i < best;
+      cells += `<button type="button" data-l="${i}" class="${done ? "done" : ""}" style="--h:${(i * 37) % 360}" ${open ? "" : "disabled"} title="${LEVELS[i].name}">${i + 1}</button>`;
+    }
+    c.innerHTML = `<h2>Choose a level</h2><p>${best} of ${LEVELS.length} cleared</p><div class="grid" id="grid">${cells}</div>
+      <div class="btns"><button class="btn alt" id="b1" type="button">Back</button></div>`;
+    $("grid").onclick = e => { const b = e.target.closest("button[data-l]"); if (b && !b.disabled) startLevel(+b.dataset.l); };
+    $("b1").onclick = () => showCard("menu");
+    const cur = c.querySelector(`[data-l="${next}"]`); if (cur) cur.scrollIntoView({ block: "center" });
+  } else if (kind === "won") {
+    const last = G.lvl >= LEVELS.length - 1;
+    c.innerHTML = `<h2>${last ? "All 100 levels glow!" : `Level ${G.lvl + 1} glows!`}</h2>
+      <div class="stats"><div><b>${G.count}</b><span>Pixels</span></div><div><b>${G.bestCombo}</b><span>Best chain</span></div><div><b>${G.vortexCount}</b><span>Vortexes</span></div></div>
+      <p>${last ? "You are the most prismatic princess there is." : `Next: ${cfgFor(G.lvl + 1).name}, ${cfgFor(G.lvl + 1).target} pixels.`}</p>
+      <div class="btns"><button class="btn" id="b1" type="button">${last ? "Play level 100 again" : "Next level"}</button><button class="btn alt" id="b2" type="button">Main menu</button></div>`;
+    $("b1").onclick = () => startLevel(last ? G.lvl : G.lvl + 1);
+    $("b2").onclick = toMenu;
+  } else {
+    c.innerHTML = `<h2>Out of time</h2>
+      <p>You gathered ${G.count} of ${G.cfg.target} pixels. Let go sooner and wait where the colors land, or stand where two beams cross.</p>
+      <div class="btns"><button class="btn" id="b1" type="button">Try level ${G.lvl + 1} again</button><button class="btn alt" id="b2" type="button">Main menu</button></div>`;
+    $("b1").onclick = () => startLevel(G.lvl);
+    $("b2").onclick = toMenu;
+  }
+  $("ov").hidden = false;
+  setTimeout(() => { const b = $("b1"); if (b) try { b.focus({ preventScroll: true }); } catch (e) {} }, 50);
+}
+let hudCache = "";
+function updateHud(force) {
+  const cfg = G.cfg || cfgFor(0);
+  const tm = Math.max(0, Math.ceil(G.mode === "menu" ? cfg.time : G.time));
+  const key = G.lvl + "|" + G.count + "|" + tm + "|" + G.mode;
+  if (!force && key === hudCache) return;
+  hudCache = key;
+  $("lvl").textContent = G.lvl + 1;
+  $("cnt").textContent = Math.min(G.count, cfg.target);
+  $("tgt").textContent = cfg.target;
+  $("fill").style.width = Math.min(100, G.count / cfg.target * 100) + "%";
+  $("tm").textContent = tm;
+  $("timeBox").classList.toggle("low", G.mode === "play" && tm <= 10);
+}
+
+/* ---------- input ---------- */
+let ptr = null, lastX = 0, lastY = 0;
+const keys = {};
+function setLight(on) {
+  if (P.light === on) return;
+  P.light = on;
+  if (on) {
+    P.tx = P.x; P.ty = P.y; sfx.light();
+    for (let i = 0; i < 16; i++) { const a = rand(0, TAU), sp = rand(100, 320) * U; sparks.push({ x: P.x, y: P.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: .5, max: .5, h: 50, s: 6 * U, white: true }); }
+  } else {
+    P.charge = 0; sfx.dark();
+    rings.push({ x: P.x, y: P.y, r: 150 * U, vr: -380 * U, life: .35, max: .35, h: 275, w: 4 * U });
+  }
+}
+function moveBy(dx, dy) {
+  P.tx = clamp(P.tx + dx, 22 * U, W - 22 * U);
+  P.ty = clamp(P.ty + dy, TOP + 26 * U, H - 28 * U);
+}
+cv.addEventListener("pointerdown", e => {
+  if (G.mode !== "play") return;
+  e.preventDefault();
+  ptr = e.pointerId; lastX = e.clientX; lastY = e.clientY;
+  try { cv.setPointerCapture(e.pointerId); } catch (err) {}
+  initAudio(); setLight(true);
+});
+cv.addEventListener("pointermove", e => {
+  if (e.pointerId !== ptr) return;
+  const k = 1.25;
+  moveBy((e.clientX - lastX) * k, (e.clientY - lastY) * k);
+  lastX = e.clientX; lastY = e.clientY;
+});
+const release = e => { if (e.pointerId === ptr) { ptr = null; if (G.mode === "play") setLight(false); } };
+cv.addEventListener("pointerup", release);
+cv.addEventListener("pointercancel", release);
+cv.addEventListener("lostpointercapture", release);
+cv.addEventListener("contextmenu", e => e.preventDefault());
+window.addEventListener("blur", () => { ptr = null; for (const k in keys) keys[k] = false; if (G.mode === "play") setLight(false); });
+window.addEventListener("keydown", e => {
+  if (G.mode !== "play") return;
+  if (["Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(e.code)) e.preventDefault();
+  keys[e.code] = true;
+  if (e.code === "Space") setLight(true);
+});
+window.addEventListener("keyup", e => {
+  keys[e.code] = false;
+  if (e.code === "Space" && G.mode === "play" && ptr === null) setLight(false);
+});
+
+/* ---------- update ---------- */
+function update(dt, rdt) {
+  G.t += rdt;
+  const play = G.mode === "play";
+  const cfg = G.cfg || cfgFor(0);
+
+  // princess
+  if (!P.light) P.charge = Math.min(1, P.charge + dt / .3);
+  if (P.light) {
+    const kx = (keys.ArrowRight ? 1 : 0) - (keys.ArrowLeft ? 1 : 0), ky = (keys.ArrowDown ? 1 : 0) - (keys.ArrowUp ? 1 : 0);
+    if (kx || ky) moveBy(kx * 520 * U * dt, ky * 520 * U * dt);
+    const ox = P.x;
+    const f = Math.min(1, rdt * 24);
+    P.x += (P.tx - P.x) * f; P.y += (P.ty - P.y) * f;
+    const vx = (P.x - ox) / Math.max(rdt, 1e-3);
+    P.tilt = lerp(P.tilt, clamp(vx / (1400 * U), -.4, .4), Math.min(1, rdt * 12));
+    if (Math.random() < .9) sparks.push({ x: P.x + rand(-10, 10) * U, y: P.y + rand(-6, 20) * U, vx: rand(-40, 40) * U, vy: rand(20, 90) * U, life: rand(.4, .8), max: .8, h: (G.t * 200 + rand(0, 90)) % 360, s: rand(4, 8) * U });
+  } else P.tilt = lerp(P.tilt, 0, Math.min(1, rdt * 8));
+  P.pulse = Math.max(0, P.pulse - rdt * 4);
+
+  // spawning
+  if (play) {
+    G.spawnT -= dt;
+    if (G.spawnT <= 0) {
+      if (Math.random() < cfg.cross) spawnCross();
+      else { spawnBeam(false); if (Math.random() < cfg.dbl) spawnBeam(false); }
+      G.spawnT = cfg.interval * rand(.8, 1.2);
+    }
+    G.time -= dt;
+    if (G.time <= 0) { G.time = 0; lose(); }
+  } else if (G.mode === "menu") {
+    G.spawnT -= dt;
+    if (G.spawnT <= 0) { spawnBeam(true); G.spawnT = rand(.7, 1.4); }
+  }
+
+  // beams
+  for (const b of beams) {
+    if (b.warn > 0) { b.warn -= dt; continue; }
+    b.trav += b.speed * dt;
+    const ht = Math.min(b.trav, b.pathLen), tt = Math.max(0, b.trav - b.len);
+    const hx = b.ox + b.dx * ht, hy = b.oy + b.dy * ht, tx = b.ox + b.dx * tt, ty = b.oy + b.dy * tt;
+    if (G.mode === "play" && P.light) {
+      const c = segClosest(P.x, P.y - 2 * U, tx, ty, hx, hy);
+      if (c.d < 30 * U) { split(b, c.x, c.y); continue; }
+    } else if (G.mode === "menu" && b.trav > b.demoAt) { split(b, hx, hy); continue; }
+    if (tt > b.pathLen) b.dead = true;
+  }
+  beams = beams.filter(b => !b.dead);
+
+  // pixels
+  const vort = G.mode === "play" && G.vortex > 0;
+  const pulling = G.mode === "play" && !P.light, suck = G.mode === "won";
+  const R = absorbR(), cap = (vort ? 26 : 17) * U;
+  const kf = Math.exp(-cfg.fric * dt), bo = cfg.bounce;
+  for (let i = pix.length - 1; i >= 0; i--) {
+    const p = pix[i];
+    p.life -= dt;
+    if (p.life <= 0) { pix[i] = pix[pix.length - 1]; pix.pop(); continue; }
+    if (pulling || suck || vort) {
+      const dx = P.x - p.x, dy = P.y - p.y, d = Math.hypot(dx, dy) + .001;
+      if (suck || vort || d < R) {
+        const f = vort ? .85 : suck ? .6 : 1 - d / R;
+        const acc = (vort ? 6000 : suck ? 3200 : 2700) * U * (.32 + f);
+        const sw = (vort ? 1800 : 1000) * U * f;
+        p.vx += (dx / d * acc - dy / d * sw) * dt;
+        p.vy += (dy / d * acc + dx / d * sw) * dt;
+        const damp = Math.exp(-3.2 * f * dt);
+        p.vx *= damp; p.vy *= damp;
+        p.life = Math.max(p.life, 1.6);
+        if (d < cap) { absorb(p); pix[i] = pix[pix.length - 1]; pix.pop(); continue; }
+      }
+    }
+    p.vx *= kf; p.vy *= kf;
+    if (Math.abs(p.vx) + Math.abs(p.vy) < 30 * U) { p.vx += rand(-60, 60) * U * dt; p.vy += rand(-60, 60) * U * dt; }
+    p.x += p.vx * dt; p.y += p.vy * dt;
+    if (p.x < 4) { p.x = 8 - p.x; p.vx = -p.vx * bo; }
+    else if (p.x > W - 4) { p.x = 2 * (W - 4) - p.x; p.vx = -p.vx * bo; }
+    if (p.y < TOP) { p.y = 2 * TOP - p.y; p.vy = -p.vy * bo; }
+    else if (p.y > H - 4) { p.y = 2 * (H - 4) - p.y; p.vy = -p.vy * bo; }
+  }
+  if (G.vortex > 0) {
+    G.vortex -= rdt;
+    // anything still spinning when the vortex closes is swallowed in one last gulp
+    if (G.vortex <= 0 && G.mode === "play") { const rest = pix; pix = []; for (const p of rest) { absorb(p); if (G.mode !== "play") break; } }
+    if (G.mode === "play" && G.vortex > .2) for (let k = 0; k < 3; k++) { const a = rand(0, TAU), r = Math.max(W, H) * rand(.3, .7); sparks.push({ x: P.x + Math.cos(a) * r, y: P.y + Math.sin(a) * r, vx: -Math.cos(a) * r * 1.6 - Math.sin(a) * 400 * U, vy: -Math.sin(a) * r * 1.6 + Math.cos(a) * 400 * U, life: .5, max: .5, h: rand(0, 360), s: rand(6, 11) * U }); }
+  }
+
+  // fx
+  for (const s of sparks) { s.life -= rdt; const k = Math.exp(-3 * rdt); s.vx *= k; s.vy *= k; s.x += s.vx * rdt; s.y += s.vy * rdt; }
+  sparks = sparks.filter(s => s.life > 0);
+  if (sparks.length > SPARK_CAP[quality]) sparks.splice(0, sparks.length - SPARK_CAP[quality]);
+  for (const r of rings) { r.life -= rdt; r.r = Math.max(0, r.r + r.vr * rdt); }
+  rings = rings.filter(r => r.life > 0);
+  for (const f of flashes) f.life -= rdt;
+  flashes = flashes.filter(f => f.life > 0);
+
+  G.comboT -= rdt; if (G.comboT <= 0) G.combo = 0;
+  G.shake *= Math.exp(-9 * rdt);
+
+  if (G.mode === "won") {
+    G.wonT += rdt; G.fwT -= rdt;
+    if (G.fwT <= 0 && G.wonT < 2.2) {
+      G.fwT = .16;
+      const x = rand(W * .1, W * .9), y = rand(TOP + 40, H * .7), h = rand(0, 360);
+      for (let i = 0; i < 36; i++) { const a = i / 36 * TAU, sp = rand(250, 480) * U; sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: rand(.6, 1.1), max: 1.1, h: (h + i * 10) % 360, s: rand(6, 10) * U }); }
+      rings.push({ x, y, r: 4, vr: 520 * U, life: .5, max: .5, h: -1, w: 4 * U });
+    }
+    if (G.wonT > 1.8 && !G.overlayShown) { G.overlayShown = true; showCard("won"); }
+  }
+  updateHud(false);
+}
+function drawVortex() {
+  if (G.vortex <= 0) return;
+  const k = G.vortex / VORTEX_TIME, al = Math.min(1, (1 - k) * 6) * Math.min(1, k * 3);
+  const R = Math.max(W, H) * 1.1;
+  ctx.save(); ctx.translate(P.x, P.y); ctx.rotate(-G.t * 5);
+  ctx.lineCap = "round";
+  for (let arm = 0; arm < 8; arm++) {
+    ctx.strokeStyle = `hsla(${(arm * 45 + G.t * 240) % 360},100%,62%,${.4 * al})`;
+    ctx.lineWidth = 16 * U;
+    ctx.beginPath();
+    for (let j = 0; j <= 48; j++) { const r = j / 48 * R, a = arm / 8 * TAU + j * .16; j ? ctx.lineTo(Math.cos(a) * r, Math.sin(a) * r) : ctx.moveTo(0, 0); }
+    ctx.stroke();
+  }
+  ctx.restore();
+  const gs = 260 * U * (1 + .2 * Math.sin(G.t * 20));
+  ctx.globalAlpha = al; ctx.drawImage(glowSprite(hk(G.t * 400)), P.x - gs / 2, P.y - gs / 2, gs, gs); ctx.globalAlpha = 1;
+}
+function drawVortexBanner() {
+  if (G.vortex <= 0 || G.mode !== "play") return;
+  const k = G.vortex / VORTEX_TIME, e = 1 - k;
+  const pop = e < .15 ? .6 + e / .15 * .55 : 1.15 - Math.min(.15, (e - .15) * .6);
+  const sz = Math.min(W / 9.5, 54 * U);
+  ctx.save(); ctx.translate(W / 2, TOP + (H - TOP) * .2); ctx.scale(pop, pop);
+  ctx.globalAlpha = Math.min(1, k * 4);
+  ctx.font = `400 ${sz}px "Bagel Fat One", "Arial Rounded MT Bold", system-ui, sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const g = ctx.createLinearGradient(-W / 2.4, 0, W / 2.4, 0);
+  for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, `hsl(${(i * 55 + G.t * 300) % 360},100%,65%)`);
+  ctx.lineWidth = sz * .14; ctx.lineJoin = "round"; ctx.strokeStyle = "rgba(20,4,50,.9)";
+  ctx.strokeText("PRISM VORTEX!", 0, 0); ctx.fillStyle = g; ctx.fillText("PRISM VORTEX!", 0, 0);
+  if (G.vortexGain > 0) {
+    ctx.font = `900 ${sz * .6}px Nunito, ui-rounded, system-ui, sans-serif`;
+    ctx.strokeText(`+${G.vortexGain}`, 0, sz * .85); ctx.fillStyle = "#fff6c8"; ctx.fillText(`+${G.vortexGain}`, 0, sz * .85);
+  }
+  ctx.restore();
+}
+
+/* ---------- draw ---------- */
+const bgCv = document.createElement("canvas"), bgCtx = bgCv.getContext("2d");
+let bgFrame = 0;
+function paintBackground(t) {
+  const bw = Math.max(1, Math.ceil(W / 4)), bh = Math.max(1, Math.ceil(H / 4));
+  if (bgCv.width !== bw || bgCv.height !== bh) { bgCv.width = bw; bgCv.height = bh; }
+  const b = bgCtx, hb = 262 + Math.sin(t * .07) * 18;
+  b.globalCompositeOperation = "source-over"; b.globalAlpha = 1;
+  const g = b.createLinearGradient(0, 0, 0, bh);
+  g.addColorStop(0, `hsl(${hb},70%,7%)`); g.addColorStop(1, `hsl(${hb + 40},65%,10%)`);
+  b.fillStyle = g; b.fillRect(0, 0, bw, bh);
+  b.globalCompositeOperation = "lighter";
+  const big = Math.max(bw, bh);
+  for (const n of nebula) {
+    const x = bw * (.5 + .45 * Math.sin(t * .05 + n.i * 1.7)), y = bh * (.5 + .4 * Math.cos(t * .04 + n.i * 2.3));
+    const sz = big * (.9 + .2 * Math.sin(t * .1 + n.i));
+    b.globalAlpha = n.a; b.drawImage(glowSprite(hk((n.h + t * 4) % 360), 90, 50), x - sz / 2, y - sz / 2, sz, sz);
+  }
+  b.globalAlpha = 1; b.globalCompositeOperation = "source-over";
+}
+function drawBackground(t) {
+  if (bgFrame++ % 6 === 0 || bgCv.width !== Math.ceil(W / 4)) paintBackground(t);
+  ctx.imageSmoothingEnabled = true;
+  ctx.drawImage(bgCv, 0, 0, W, H);
+  ctx.globalCompositeOperation = "lighter";
+  ctx.fillStyle = "#efe6ff";
+  for (const s of stars) {
+    ctx.globalAlpha = .35 + .65 * (.5 + .5 * Math.sin(t * s.s + s.p));
+    ctx.fillRect(s.x, s.y, s.r, s.r);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawBeams(t) {
+  for (const b of beams) {
+    if (b.warn > 0) {
+      const pulse = .5 + .5 * Math.sin(t * 30);
+      const sz = (40 + 30 * pulse) * U;
+      ctx.globalAlpha = .8; ctx.drawImage(WHITE(), b.ox - sz / 2, b.oy - sz / 2, sz, sz);
+      ctx.globalAlpha = .28 + .2 * pulse;
+      ctx.strokeStyle = b.prism ? `hsl(${(t * 400) % 360},100%,75%)` : "#fff6d8";
+      ctx.lineWidth = 2 * U; ctx.setLineDash([6 * U, 9 * U]); ctx.lineDashOffset = -t * 120;
+      ctx.beginPath(); ctx.moveTo(b.ox, b.oy);
+      const L = b.cx !== null ? b.d : Math.min(b.pathLen, 280 * U);
+      ctx.lineTo(b.ox + b.dx * L, b.oy + b.dy * L); ctx.stroke(); ctx.setLineDash([]);
+      if (b.cx !== null) {
+        const ms = (46 + 22 * pulse) * U;
+        ctx.globalAlpha = .95; ctx.drawImage(glowSprite(hk(t * 300)), b.cx - ms / 2, b.cy - ms / 2, ms, ms);
+        ctx.save(); ctx.translate(b.cx, b.cy); ctx.rotate(t * 3); ctx.fillStyle = "#fffbe8"; ctx.beginPath();
+        for (let k = 0; k < 10; k++) { const r = (k % 2 ? 4 : 11) * U, a2 = k / 10 * TAU; ctx.lineTo(Math.cos(a2) * r, Math.sin(a2) * r); }
+        ctx.fill(); ctx.restore();
+      }
+      continue;
+    }
+    const ht = Math.min(b.trav, b.pathLen), tt = Math.max(0, b.trav - b.len);
+    const hx = b.ox + b.dx * ht, hy = b.oy + b.dy * ht, tx = b.ox + b.dx * tt, ty = b.oy + b.dy * tt;
+    ctx.lineCap = "round";
+    // chromatic fringe
+    const nx = -b.dy * 3.5 * U, ny = b.dx * 3.5 * U;
+    const fr = b.prism ? [[0, 1], [60, .8], [130, .8], [210, 1], [280, 1]] : [[350, .6], [210, .6]];
+    fr.forEach(([h, a], i) => {
+      const o = b.prism ? (i - 2) * .9 : (i ? -1 : 1);
+      ctx.globalAlpha = a * .7; ctx.strokeStyle = `hsl(${(h + (b.prism ? t * 300 : 0)) % 360},100%,62%)`; ctx.lineWidth = 3 * U;
+      ctx.beginPath(); ctx.moveTo(tx + nx * o, ty + ny * o); ctx.lineTo(hx + nx * o, hy + ny * o); ctx.stroke();
+    });
+    for (const [w, a] of [[28, .07], [13, .2], [5, .95]]) {
+      ctx.globalAlpha = a; ctx.strokeStyle = "#fff8e6"; ctx.lineWidth = w * U * (b.prism ? 1.3 : 1);
+      ctx.beginPath(); ctx.moveTo(tx, ty); ctx.lineTo(hx, hy); ctx.stroke();
+    }
+    const hs = (b.prism ? 90 : 64) * U;
+    ctx.globalAlpha = 1; ctx.drawImage(WHITE(), hx - hs / 2, hy - hs / 2, hs, hs);
+    if (tt < 30 * U) { const es = 50 * U * (1 - tt / (30 * U)); ctx.drawImage(WHITE(), b.ox - es / 2, b.oy - es / 2, es, es); }
+  }
+  ctx.globalAlpha = 1;
+}
+function drawPixels(t) {
+  ctx.lineCap = "round";
+  for (const p of pix) {
+    let a = Math.min(1, p.life / 1.5);
+    if (p.life < 1.5) a *= .55 + .45 * Math.sin(t * 28 + p.tw);
+    const sp = Math.abs(p.vx) + Math.abs(p.vy);
+    if (sp > 80 * U) {
+      ctx.globalAlpha = a * .85; ctx.strokeStyle = `hsl(${p.h | 0},100%,64%)`; ctx.lineWidth = p.s;
+      ctx.beginPath(); ctx.moveTo(p.x - p.vx * .05, p.y - p.vy * .05); ctx.lineTo(p.x, p.y); ctx.stroke();
+    }
+    const gs = p.s * (9.5 + 2 * Math.sin(t * 6 + p.tw));
+    ctx.globalAlpha = a; ctx.drawImage(glowSprite(hk(p.h)), p.x - gs / 2, p.y - gs / 2, gs, gs);
+    ctx.fillStyle = `hsl(${p.h | 0},100%,88%)`;
+    ctx.fillRect(p.x - p.s / 2, p.y - p.s / 2, p.s, p.s);
+  }
+  ctx.globalAlpha = 1;
+}
+function drawFx() {
+  for (const f of flashes) {
+    const k = f.life / f.max, s = f.size * (1.4 - k * .6);
+    ctx.globalAlpha = k; ctx.drawImage(WHITE(), f.x - s / 2, f.y - s / 2, s, s);
+  }
+  for (const r of rings) {
+    const k = r.life / r.max;
+    ctx.lineWidth = r.w * k + .5;
+    if (r.h < 0) {
+      const n = 24;
+      for (let i = 0; i < n; i++) {
+        ctx.globalAlpha = k; ctx.strokeStyle = `hsl(${i * 15},100%,62%)`;
+        ctx.beginPath(); ctx.arc(r.x, r.y, r.r, i / n * TAU, (i + 1.05) / n * TAU); ctx.stroke();
+      }
+    } else {
+      ctx.globalAlpha = k; ctx.strokeStyle = `hsl(${r.h | 0},100%,70%)`;
+      ctx.beginPath(); ctx.arc(r.x, r.y, r.r, 0, TAU); ctx.stroke();
+    }
+  }
+  for (const s of sparks) {
+    const k = s.life / s.max, sz = s.s * (.4 + k);
+    ctx.globalAlpha = Math.min(1, k * 1.4);
+    ctx.drawImage(s.white ? WHITE() : glowSprite(hk(s.h)), s.x - sz, s.y - sz, sz * 2, sz * 2);
+  }
+  ctx.globalAlpha = 1;
+}
+function rainbowGrad(x0, y0, x1, y1, shift, light) {
+  const g = ctx.createLinearGradient(x0, y0, x1, y1);
+  for (let i = 0; i <= 6; i++) g.addColorStop(i / 6, `hsl(${(i * 52 + shift) % 360},100%,${light}%)`);
+  return g;
+}
+function drawPrincess(t) {
+  const s = U * 1.35, L = P.light;
+  ctx.save();
+  ctx.translate(P.x, P.y);
+  if (!L) {
+    const R = absorbR();
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, R);
+    g.addColorStop(0, "rgba(6,0,22,.6)"); g.addColorStop(.75, "rgba(40,8,90,.28)"); g.addColorStop(1, "rgba(40,8,90,0)");
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, R, 0, TAU); ctx.fill();
+    ctx.globalCompositeOperation = "lighter";
+    ctx.save(); ctx.rotate(-t * 1.6);
+    const n = 30; ctx.lineWidth = 3 * s; ctx.lineCap = "round";
+    for (let i = 0; i < n; i++) {
+      ctx.strokeStyle = `hsla(${i * 12},100%,64%,${.35 + .5 * P.charge})`;
+      ctx.beginPath(); ctx.arc(0, 0, R, i / n * TAU, (i + .55) / n * TAU); ctx.stroke();
+    }
+    ctx.rotate(t * 3.4); ctx.lineWidth = 1.5 * s;
+    for (let i = 0; i < 6; i++) {
+      ctx.strokeStyle = `hsla(${i * 60 + t * 90},100%,70%,.35)`;
+      ctx.beginPath(); ctx.arc(0, 0, R * (.45 + i * .08), i, i + 1.4); ctx.stroke();
+    }
+    ctx.restore();
+    if (P.pulse > 0) { const ps = (70 + 50 * P.pulse) * s; ctx.globalAlpha = P.pulse * .8; ctx.drawImage(glowSprite(hk(G.t * 300)), -ps / 2, -ps / 2, ps, ps); ctx.globalAlpha = 1; }
+  } else {
+    ctx.globalCompositeOperation = "lighter";
+    const sz = (120 + 12 * Math.sin(t * 9)) * s;
+    ctx.drawImage(WHITE(), -sz / 2, -sz / 2, sz, sz);
+    ctx.save(); ctx.rotate(t * .9);
+    for (let i = 0; i < 14; i++) {
+      ctx.rotate(TAU / 14);
+      ctx.fillStyle = `hsla(${(i * 26 + t * 140) % 360},100%,66%,.24)`;
+      ctx.beginPath(); ctx.moveTo(0, 0); ctx.lineTo(-5 * s, -78 * s); ctx.lineTo(5 * s, -78 * s); ctx.fill();
+    }
+    ctx.restore();
+  }
+  ctx.globalCompositeOperation = "source-over";
+
+  ctx.rotate(P.tilt);
+  ctx.translate(0, L ? 0 : Math.sin(t * 3) * 1.4 * s);
+  const wv = Math.sin(t * (L ? 14 : 4)) * 1.6 * s;
+
+  // hair (back)
+  ctx.beginPath();
+  ctx.moveTo(-8 * s, -14 * s);
+  ctx.bezierCurveTo(-17 * s, -8 * s, -15 * s + wv, 8 * s, -12 * s + wv, 17 * s);
+  ctx.quadraticCurveTo(0, 13 * s, 12 * s - wv, 17 * s);
+  ctx.bezierCurveTo(15 * s - wv, 8 * s, 17 * s, -8 * s, 8 * s, -14 * s);
+  ctx.closePath();
+  if (L) ctx.fillStyle = rainbowGrad(0, -14 * s, 0, 17 * s, t * 160, 66);
+  else { const hg = ctx.createLinearGradient(0, -14 * s, 0, 17 * s); hg.addColorStop(0, "#3a1280"); hg.addColorStop(.7, "#7a2fd6"); hg.addColorStop(1, `hsl(${(t * 80) % 360},100%,66%)`); ctx.fillStyle = hg; }
+  ctx.fill();
+
+  // gown
+  ctx.beginPath();
+  ctx.moveTo(-5 * s, 0);
+  ctx.quadraticCurveTo(-7 * s, 13 * s, -18 * s, 25 * s);
+  for (let i = 0; i < 6; i++) {
+    const x0 = -18 + i * 6;
+    ctx.quadraticCurveTo((x0 + 3) * s, (29 + (i % 2 ? .5 : 0)) * s + (L ? wv * .5 : 0), (x0 + 6) * s, 25 * s);
+  }
+  ctx.quadraticCurveTo(7 * s, 13 * s, 5 * s, 0);
+  ctx.closePath();
+  if (L) ctx.fillStyle = rainbowGrad(-18 * s, 0, 18 * s, 0, t * 220, 64);
+  else { const gg = ctx.createLinearGradient(0, 0, 0, 27 * s); gg.addColorStop(0, "#5a24b8"); gg.addColorStop(1, "#1a0846"); ctx.fillStyle = gg; }
+  ctx.fill();
+  ctx.lineWidth = 1.2 * s; ctx.strokeStyle = L ? "rgba(255,255,255,.85)" : `hsla(${(t * 90) % 360},100%,72%,.8)`; ctx.stroke();
+  if (!L) {
+    ctx.fillStyle = "#fff";
+    for (let i = 0; i < 7; i++) {
+      const sx = Math.sin(i * 12.9) * 10 * s, sy = (6 + (i * 37 % 18)) * s;
+      ctx.globalAlpha = .4 + .6 * (.5 + .5 * Math.sin(t * 5 + i * 2));
+      ctx.fillRect(sx, sy, 1.4 * s, 1.4 * s);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // bodice
+  ctx.fillStyle = L ? "#fff4fb" : "#7b46e0";
+  ctx.beginPath(); ctx.moveTo(-5 * s, -3 * s); ctx.lineTo(5 * s, -3 * s); ctx.lineTo(4 * s, 3 * s); ctx.lineTo(-4 * s, 3 * s); ctx.closePath(); ctx.fill();
+
+  // arms
+  ctx.strokeStyle = "#ffd8c6"; ctx.lineWidth = 2.6 * s; ctx.lineCap = "round";
+  const ay = L ? -15 * s : 3 * s + Math.sin(t * 6) * 1.2 * s, ax = L ? 12 * s : 14 * s;
+  ctx.beginPath(); ctx.moveTo(-4 * s, -2 * s); ctx.lineTo(-ax, ay); ctx.moveTo(4 * s, -2 * s); ctx.lineTo(ax, ay); ctx.stroke();
+  ctx.fillStyle = "#ffe4d6";
+  ctx.beginPath(); ctx.arc(-ax, ay, 1.9 * s, 0, TAU); ctx.arc(ax, ay, 1.9 * s, 0, TAU); ctx.fill();
+  if (L) { ctx.globalCompositeOperation = "lighter"; const hs = 22 * s; ctx.drawImage(WHITE(), -ax - hs / 2, ay - hs / 2, hs, hs); ctx.drawImage(WHITE(), ax - hs / 2, ay - hs / 2, hs, hs); ctx.globalCompositeOperation = "source-over"; }
+
+  // head
+  ctx.fillStyle = "#ffe3d3";
+  ctx.beginPath(); ctx.arc(0, -10 * s, 7 * s, 0, TAU); ctx.fill();
+  // bangs
+  ctx.fillStyle = L ? rainbowGrad(-8 * s, 0, 8 * s, 0, t * 160, 68) : "#4a1798";
+  ctx.beginPath(); ctx.arc(0, -10.5 * s, 7.6 * s, Math.PI * 1.02, Math.PI * 1.98);
+  ctx.quadraticCurveTo(3 * s, -12 * s, 0, -13 * s); ctx.quadraticCurveTo(-3 * s, -12 * s, -7.4 * s, -11 * s); ctx.fill();
+  // face
+  ctx.strokeStyle = "#3a1650"; ctx.fillStyle = "#3a1650"; ctx.lineWidth = 1.1 * s;
+  if (L) {
+    ctx.beginPath(); ctx.arc(-2.6 * s, -9 * s, 1.3 * s, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(2.6 * s, -9 * s, 1.3 * s, Math.PI * 1.1, Math.PI * 1.9); ctx.stroke();
+    ctx.beginPath(); ctx.arc(0, -6.6 * s, 1.8 * s, .15 * Math.PI, .85 * Math.PI); ctx.stroke();
+  } else {
+    ctx.beginPath(); ctx.arc(-2.6 * s, -9.3 * s, 1.05 * s, 0, TAU); ctx.arc(2.6 * s, -9.3 * s, 1.05 * s, 0, TAU); ctx.fill();
+    ctx.fillStyle = "#fff"; ctx.fillRect(-2.4 * s, -10 * s, .6 * s, .6 * s); ctx.fillRect(2.8 * s, -10 * s, .6 * s, .6 * s);
+    ctx.beginPath(); ctx.arc(0, -6.4 * s, .9 * s, 0, TAU); ctx.strokeStyle = "#3a1650"; ctx.stroke();
+  }
+  ctx.fillStyle = "rgba(255,110,160,.45)";
+  ctx.beginPath(); ctx.arc(-4.4 * s, -7.4 * s, 1.3 * s, 0, TAU); ctx.arc(4.4 * s, -7.4 * s, 1.3 * s, 0, TAU); ctx.fill();
+  // crown
+  ctx.fillStyle = "#ffd25a"; ctx.strokeStyle = "#fff2b0"; ctx.lineWidth = .8 * s;
+  ctx.beginPath();
+  ctx.moveTo(-5.5 * s, -16 * s); ctx.lineTo(-6 * s, -22 * s); ctx.lineTo(-3 * s, -18.5 * s); ctx.lineTo(0, -23.5 * s);
+  ctx.lineTo(3 * s, -18.5 * s); ctx.lineTo(6 * s, -22 * s); ctx.lineTo(5.5 * s, -16 * s); ctx.closePath(); ctx.fill(); ctx.stroke();
+  [[-6, -22, 330], [0, -23.5, (t * 120) % 360], [6, -22, 190]].forEach(([x, y, h]) => {
+    ctx.fillStyle = `hsl(${h},100%,62%)`; ctx.beginPath(); ctx.arc(x * s, y * s, 1.3 * s, 0, TAU); ctx.fill();
+  });
+  ctx.globalCompositeOperation = "lighter";
+  const cs = (14 + 4 * Math.sin(t * 7)) * s; ctx.drawImage(glowSprite(hk(t * 120)), -cs / 2, -23.5 * s - cs / 2, cs, cs);
+  ctx.restore();
+}
+function drawCombo() {
+  if (G.mode !== "play" || G.combo < 5) return;
+  const sz = Math.round((15 + Math.min(G.combo, 60) * .25) * U);
+  ctx.font = `900 ${sz}px Nunito, ui-rounded, system-ui, sans-serif`;
+  ctx.textAlign = "center"; ctx.textBaseline = "middle";
+  const y = P.y - 56 * U - sz * .2 * P.pulse;
+  ctx.globalAlpha = Math.min(1, G.comboT * 3);
+  ctx.lineWidth = 4 * U; ctx.strokeStyle = "rgba(20,4,50,.85)"; ctx.strokeText(`${G.combo} chain`, P.x, y);
+  ctx.fillStyle = `hsl(${(G.t * 300) % 360},100%,72%)`; ctx.fillText(`${G.combo} chain`, P.x, y);
+  ctx.globalAlpha = 1;
+}
+function draw() {
+  const t = G.t;
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  ctx.globalCompositeOperation = "source-over";
+  drawBackground(t);
+  if (G.shake > .2) ctx.translate(rand(-1, 1) * G.shake, rand(-1, 1) * G.shake);
+  ctx.globalCompositeOperation = "lighter";
+  drawVortex();
+  drawPixels(t);
+  drawBeams(t);
+  ctx.globalCompositeOperation = "source-over";
+  if (G.mode !== "menu") drawPrincess(t);
+  ctx.globalCompositeOperation = "lighter";
+  drawFx();
+  ctx.globalCompositeOperation = "source-over";
+  drawCombo();
+  drawVortexBanner();
+}
+
+/* ---------- loop ---------- */
+let last = performance.now();
+let lastFrameAt = performance.now(), errCount = 0, slowT = 0, fpsAvg = 16;
+function recover(err) {
+  errCount++;
+  if (errCount < 5) console.warn("frame error", err);
+  // drop anything that might hold a bad value and keep playing
+  sparks = []; rings = []; flashes = [];
+  pix = pix.filter(p => Number.isFinite(p.x) && Number.isFinite(p.y) && Number.isFinite(p.vx) && Number.isFinite(p.vy) && Number.isFinite(p.h));
+  beams = beams.filter(b => Number.isFinite(b.ox) && Number.isFinite(b.dx) && Number.isFinite(b.pathLen));
+  if (!Number.isFinite(P.x) || !Number.isFinite(P.y)) { P.x = P.tx = W / 2; P.y = P.ty = H * .62; }
+  try { ctx.setTransform(DPR, 0, 0, DPR, 0, 0); ctx.globalAlpha = 1; ctx.globalCompositeOperation = "source-over"; ctx.setLineDash([]); } catch (e) {}
+}
+function frame(now) {
+  requestAnimationFrame(frame);
+  const ms = now - last;
+  const rdt = Math.min(.05, Math.max(0, ms / 1000)); last = now; lastFrameAt = performance.now();
+  let dt = rdt;
+  if (G.hitstop > 0) { G.hitstop -= rdt; dt = rdt * .2; }
+  try { update(dt, rdt); } catch (e) { recover(e); }
+  try { draw(); } catch (e) { recover(e); }
+  // step quality down after ~2s of slow frames during play
+  if (ms > 0 && ms < 250) fpsAvg = fpsAvg * .95 + ms * .05;
+  if (G.mode === "play" && fpsAvg > 26 && quality < RS_MAX.length - 1) {
+    slowT += rdt;
+    if (slowT > 2) { quality++; slowT = 0; fpsAvg = 16; resize(); }
+  } else slowT = Math.max(0, slowT - rdt);
+}
+// if the browser ever drops the animation loop while the page is visible, start it again
+setInterval(() => {
+  if (!document.hidden && performance.now() - lastFrameAt > 1500) { last = performance.now(); lastFrameAt = last; requestAnimationFrame(frame); }
+}, 1000);
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) {
+    ptr = null; if (G.mode === "play") setLight(false);
+    if (AC && AC.state === "running") AC.suspend().catch(() => {});
+  } else {
+    last = performance.now();
+    if (AC && AC.state === "suspended") AC.resume().catch(() => {});
+    if (AC) mus.next = AC.currentTime + .1;
+  }
+});
+resize();
+showCard("menu");
+updateHud(true);
+// warm the demo so the first frame already has color in it
+for (let i = 0; i < 90; i++) update(1 / 60, 1 / 60);
+requestAnimationFrame(frame);
+window.__ppp = { glowCache, G, P, pix: () => pix, beams: () => beams, startLevel, LEVELS };
+})();
+</script>
+
+</html>
