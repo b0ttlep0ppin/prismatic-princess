@@ -14,4 +14,4 @@ Keyboard works too: hold Space for light mode and steer with the arrow keys.
 
 ## Run it
 
-Open `index.html` in any modern browser. There is no build step and no dependencies (fonts load from Google Fonts).
+Open `index.html` in any modern browser. There is no build step and no dependencies: its two fonts, Bagel Fat One and Nunito, are embedded in the file, and their licences (SIL Open Font License 1.1) are in `fonts/`.
